@@ -15,9 +15,10 @@ CORS(app)
 nlp = spacy.load("en_core_web_sm")
 
 # Create an uploads directory if it doesn't exist
-UPLOAD_FOLDER = 'uploads'
+UPLOAD_FOLDER = "uploads"
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
+
 
 # Function to extract text from PDFs
 def extract_text_from_pdf(pdf_path):
@@ -28,21 +29,23 @@ def extract_text_from_pdf(pdf_path):
             text += page.extract_text()
         return text
 
+
 # Function to extract entities (names and emails) from text
 def extract_entities(text):
-    emails = re.findall(r'\S+@\S+', text)
-    names = re.findall(r'^([A-Z][a-z]+)\s+([A-Z][a-z]+)', text)
+    emails = re.findall(r"\S+@\S+", text)
+    names = re.findall(r"^([A-Z][a-z]+)\s+([A-Z][a-z]+)", text)
     if names:
         names = [" ".join(names[0])]
     return emails, names
 
+
 # Route to handle file uploads and resume analysis
-@app.route('/', methods=['POST'])
+@app.route("/", methods=["POST"])
 def index():
     try:
         # Get job description and uploaded files from the request
-        job_description = request.form.get('job_description')
-        resume_files = request.files.getlist('resume_files')
+        job_description = request.form.get("job_description")
+        resume_files = request.files.getlist("resume_files")
 
         if not job_description or not resume_files:
             return jsonify({"error": "Job description and resumes are required."}), 400
@@ -65,14 +68,16 @@ def index():
 
         # Rank resumes based on similarity to the job description
         ranked_resumes = []
-        for (names, emails, resume_text) in processed_resumes:
+        for names, emails, resume_text in processed_resumes:
             resume_vector = tfidf_vectorizer.transform([resume_text])
             similarity = cosine_similarity(job_desc_vector, resume_vector)[0][0] * 100
-            ranked_resumes.append({
-                "name": names[0] if names else "N/A",
-                "email": emails[0] if emails else "N/A",
-                "similarity": similarity
-            })
+            ranked_resumes.append(
+                {
+                    "name": names[0] if names else "N/A",
+                    "email": emails[0] if emails else "N/A",
+                    "similarity": similarity,
+                }
+            )
 
         # Sort resumes by similarity score
         ranked_resumes.sort(key=lambda x: x["similarity"], reverse=True)
@@ -86,8 +91,9 @@ def index():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
 # Route to download ranked resumes as a CSV file
-@app.route('/download_csv', methods=['GET'])
+@app.route("/download_csv", methods=["GET"])
 def download_csv():
     try:
         csv_filename = "ranked_resumes.csv"
@@ -108,5 +114,6 @@ def download_csv():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     app.run(debug=True)
