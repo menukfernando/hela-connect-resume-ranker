@@ -92,28 +92,5 @@ def index():
         return jsonify({"error": str(e)}), 500
 
 
-# Route to download ranked resumes as a CSV file
-@app.route("/download_csv", methods=["GET"])
-def download_csv():
-    try:
-        csv_filename = "ranked_resumes.csv"
-        csv_path = os.path.join(os.getcwd(), csv_filename)
-
-        # Generate CSV content
-        csv_content = "Rank,Name,Email,Similarity\n"
-        for resume in ranked_resumes:
-            csv_content += f'{resume["rank"]},{resume["name"]},{resume["email"]},{resume["similarity"]:.2f}\n'
-
-        # Write CSV file
-        with open(csv_path, "w") as csv_file:
-            csv_file.write(csv_content)
-
-        # Send file for download
-        return send_file(csv_path, as_attachment=True, download_name=csv_filename)
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
 if __name__ == "__main__":
     app.run(debug=True)
