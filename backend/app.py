@@ -5,7 +5,7 @@ import logging
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 
-import fitz  # PyMuPDF for PDF text extraction
+import fitz
 from sentence_transformers import SentenceTransformer, util
 import pytesseract
 from pdf2image import convert_from_path
@@ -14,7 +14,6 @@ from PIL import Image
 app = Flask(__name__)
 CORS(app)
 
-# Load SentenceTransformer model for semantic embeddings
 sbert_model = SentenceTransformer('all-MiniLM-L6-v2')
 
 # Create an uploads directory if it doesn't exist
@@ -56,9 +55,6 @@ def extract_text_from_pdf(pdf_path):
 
 
 def extract_entities(text):
-    """
-    Extracts emails using regex and uses regex to capture first and last names.
-    """
     emails = re.findall(r"\S+@\S+", text)
     names = re.findall(r"^([A-Z][a-z]+)\s+([A-Z][a-z]+)", text, re.MULTILINE)
     
