@@ -1,13 +1,13 @@
+import os
+import re
+
+import PyPDF2
+import spacy
 from flask import Flask, jsonify, request, send_file
 from flask_cors import CORS
-import spacy
-import PyPDF2
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-import re
-import os
 
-# Initialize Flask app and enable CORS
 app = Flask(__name__)
 CORS(app)
 
@@ -44,6 +44,9 @@ def index():
         job_description = request.form.get('job_description')
         resume_files = request.files.getlist('resume_files')
 
+        if not job_description or not resume_files:
+            return jsonify({"error": "Job description and resumes are required."}), 400
+
         # Process uploaded resumes
         processed_resumes = []
         for resume_file in resume_files:
@@ -74,6 +77,10 @@ def index():
         # Sort resumes by similarity score
         ranked_resumes.sort(key=lambda x: x["similarity"], reverse=True)
 
+        # Add rank to each resume
+        for i, resume in enumerate(ranked_resumes, start=1):
+            resume["rank"] = i
+
         return jsonify(ranked_resumes)
 
     except Exception as e:
@@ -88,8 +95,8 @@ def download_csv():
 
         # Generate CSV content
         csv_content = "Rank,Name,Email,Similarity\n"
-        for rank, resume in enumerate(ranked_resumes, start=1):
-            csv_content += f'{rank},{resume["name"]},{resume["email"]},{resume["similarity"]:.2f}\n'
+        for resume in ranked_resumes:
+            csv_content += f'{resume["rank"]},{resume["name"]},{resume["email"]},{resume["similarity"]:.2f}\n'
 
         # Write CSV file
         with open(csv_path, "w") as csv_file:

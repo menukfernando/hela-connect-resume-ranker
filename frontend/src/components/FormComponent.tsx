@@ -1,7 +1,14 @@
 import React, { useState } from 'react';
 
+export type IResults = {
+  rank: number;
+  email: string;
+  name: string;
+  similarity: number;
+};
+
 interface FormComponentProps {
-  onResults: (results: any[]) => void; // Prop to pass results to parent
+  onResults: (results: IResults[]) => void;
 }
 
 const FormComponent: React.FC<FormComponentProps> = ({ onResults }) => {
@@ -23,7 +30,7 @@ const FormComponent: React.FC<FormComponentProps> = ({ onResults }) => {
         body: formData,
       });
       const result = await response.json();
-      onResults(result); // Pass results to parent component
+      onResults(result);
     } catch (error) {
       console.error('Error:', error);
     }
