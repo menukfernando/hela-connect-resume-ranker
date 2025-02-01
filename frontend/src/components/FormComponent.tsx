@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { INITIAL_JOB_DESCRIPTION } from "../constants/constants";
 
 export interface IResults {
   rank: number;
@@ -12,35 +13,9 @@ interface FormComponentProps {
 }
 
 const FormComponent = ({ onResults }: FormComponentProps) => {
-  const [jobDescription, setJobDescription] = useState<string>(
-    `Software Engineer - Full Stack
-
-About the Role
-We are looking for a Full Stack Software Engineer to join our growing engineering team. As a Full Stack Engineer, you will design, develop, and maintain scalable web applications, contributing to both frontend and backend codebases. You will collaborate with product managers, designers, and other engineers to deliver high-quality features in a fast-paced environment.
-
-Key Responsibilities
-- Design, develop, and deploy web applications with a focus on scalability and performance.
-- Build and maintain backend services using Node.js, Python, or similar technologies.
-- Develop user interfaces using modern JavaScript frameworks like React.js or Vue.js.
-- Integrate third-party APIs and build RESTful APIs for internal and external consumption.
-- Collaborate with cross-functional teams to define, design, and ship new features.
-- Implement automated testing, CI/CD pipelines, and monitor system performance.
-- Write clean, maintainable, and well-documented code.
-- Stay up-to-date with emerging technologies and propose innovative solutions.
-
-Skills and Qualifications
-- 2+ years of experience in software development, working on both frontend and backend technologies.
-- Proficiency in JavaScript, TypeScript, HTML, and CSS.
-- Experience with React.js, Angular, or Vue.js for frontend development.
-- Hands-on experience with backend frameworks like Express.js, Django, or Flask.
-- Familiarity with databases like PostgreSQL, MySQL, or MongoDB.
-- Strong understanding of version control systems (e.g., Git, GitHub, GitLab).
-- Knowledge of cloud platforms such as AWS, Azure, or Google Cloud is a plus.
-- Experience with containerization tools like Docker and orchestration tools like Kubernetes is a bonus.
-- Excellent problem-solving and communication skills.
-- Ability to work in an Agile/Scrum environment.`
-  );
+  const [jobDescription, setJobDescription] = useState<string>(INITIAL_JOB_DESCRIPTION);
   const [files, setFiles] = useState<FileList | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,6 +26,8 @@ Skills and Qualifications
     formData.append("job_description", jobDescription);
     Array.from(files).forEach((file) => formData.append("resume_files", file));
 
+    setLoading(true);
+
     try {
       const response = await fetch("http://127.0.0.1:5000/", {
         method: "POST",
@@ -60,12 +37,16 @@ Skills and Qualifications
       onResults(result);
     } catch (error) {
       console.error("Error:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="w-[1000px] mx-auto p-6 bg-white rounded-lg shadow">
-      <h1 className="text-2xl font-bold text-center mb-6">Resume Analyzer</h1>
+      <h1 className="text-2xl font-bold text-center mb-6">
+        Resume Analyzer - Hela Connect Demo
+      </h1>
       <form onSubmit={handleSubmit}>
         <div className="mb-4">
           <label
@@ -76,7 +57,7 @@ Skills and Qualifications
           </label>
           <textarea
             id="job_description"
-            className="w-full mt-2 p-3 border rounded-lg h-[480px]"
+            className="w-full mt-2 p-3 border rounded-lg h-[400px]"
             placeholder="Enter the job description here..."
             rows={6}
             value={jobDescription}
@@ -94,7 +75,7 @@ Skills and Qualifications
           <input
             id="resume_files"
             type="file"
-            className="mt-2 block w-full text-sm text-gray-500"
+            className="mt-2 w-48 p-1 rounded-md text-sm text-gray-500 bg-gray-300 cursor-pointer"
             multiple
             accept=".pdf"
             onChange={(e) => setFiles(e.target.files)}
@@ -103,11 +84,21 @@ Skills and Qualifications
         </div>
         <button
           type="submit"
-          className="w-full bg-primary text-white py-2 px-4 rounded-lg hover:bg-secondary transition"
+          className={`w-full py-2 px-4 rounded-lg transition ${
+            loading
+              ? "bg-gray-400 cursor-not-allowed"
+              : "bg-primary text-white hover:bg-secondary"
+          }`}
+          disabled={loading}
         >
-          Analyze Resumes
+          {loading ? "Analyzing..." : "Analyze Resumes"}{" "}
         </button>
       </form>
+      {loading && (
+        <div className="mt-4 text-center text-gray-500">
+          <p>Processing resumes... Please wait.</p>
+        </div>
+      )}
     </div>
   );
 };

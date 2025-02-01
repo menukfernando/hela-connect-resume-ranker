@@ -19,7 +19,6 @@ const App: React.FC = () => {
   return (
     <div className="relative min-h-screen bg-gray-100 p-4">
       <FormComponent onResults={handleResults} />
-
       {isModalOpen && (
         <div
           className="fixed inset-0 flex items-center justify-center bg-transparent backdrop-blur-sm z-50"
