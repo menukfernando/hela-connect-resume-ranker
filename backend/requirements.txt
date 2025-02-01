@@ -1,0 +1,7 @@
+Flask==2.2.5
+Flask-CORS==3.0.10
+spacy==3.6.1
+PyPDF2==3.0.1
+scikit-learn==1.2.2
+numpy<1.24
+Cython<3.0
