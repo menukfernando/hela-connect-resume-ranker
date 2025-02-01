@@ -14,7 +14,7 @@ from PIL import Image
 app = Flask(__name__)
 CORS(app)
 
-sbert_model = SentenceTransformer('all-MiniLM-L6-v2')
+sbert_model = SentenceTransformer("all-MiniLM-L6-v2")
 
 # Create an uploads directory if it doesn't exist
 UPLOAD_FOLDER = "uploads"
@@ -23,10 +23,6 @@ if not os.path.exists(UPLOAD_FOLDER):
 
 
 def extract_text_from_pdf(pdf_path):
-    """
-    Extracts text from a PDF using PyMuPDF.
-    If text extraction fails (e.g., for scanned pages), it falls back to OCR.
-    """
     text = ""
     try:
         doc = fitz.open(pdf_path)
@@ -43,7 +39,6 @@ def extract_text_from_pdf(pdf_path):
         doc.close()
     except Exception as e:
         logging.error(f"Error with PyMuPDF extraction: {e}")
-        # Fallback: convert entire PDF pages to images and perform OCR
         try:
             images = convert_from_path(pdf_path)
             for img in images:
@@ -57,55 +52,51 @@ def extract_text_from_pdf(pdf_path):
 def extract_entities(text):
     emails = re.findall(r"\S+@\S+", text)
     names = re.findall(r"^([A-Z][a-z]+)\s+([A-Z][a-z]+)", text, re.MULTILINE)
-    
-    # Convert list of tuples to full names
+
     extracted_names = [" ".join(name) for name in names]
-    
+
     return list(set(emails)), extracted_names
 
 
 @app.route("/", methods=["POST"])
 def analyze_resumes():
     try:
-        # Retrieve job description and resumes from the request
         job_description = request.form.get("job_description")
         resume_files = request.files.getlist("resume_files")
 
         if not job_description or not resume_files:
             return jsonify({"error": "Job description and resumes are required."}), 400
 
-        # Compute embedding for the job description
         job_desc_embedding = sbert_model.encode(job_description, convert_to_tensor=True)
 
         processed_resumes = []
         for resume_file in resume_files:
-            # Save the uploaded file
+
             resume_path = os.path.join(UPLOAD_FOLDER, resume_file.filename)
             resume_file.save(resume_path)
 
-            # Extract text from the resume
             resume_text = extract_text_from_pdf(resume_path)
             if not resume_text.strip():
-                continue  # Skip resumes with no extractable text
+                continue
 
-            # Extract entities (emails and names)
             emails, names = extract_entities(resume_text)
 
-            # Compute semantic embedding for the resume text
             resume_embedding = sbert_model.encode(resume_text, convert_to_tensor=True)
 
             # Calculate cosine similarity between job description and resume
             similarity = util.cos_sim(job_desc_embedding, resume_embedding).item() * 100
 
-            processed_resumes.append({
-                "name": names[0] if names else "N/A",
-                "email": emails[0] if emails else "N/A",
-                "similarity": round(similarity, 2),
-                "filename": resume_file.filename  # Optional: include filename for reference
-            })
+            processed_resumes.append(
+                {
+                    "name": names[0] if names else "N/A",
+                    "email": emails[0] if emails else "N/A",
+                    "similarity": round(similarity, 2),
+                }
+            )
 
-        # Sort resumes by similarity (highest first) and assign rank
-        ranked_resumes = sorted(processed_resumes, key=lambda x: x["similarity"], reverse=True)
+        ranked_resumes = sorted(
+            processed_resumes, key=lambda x: x["similarity"], reverse=True
+        )
         for i, resume in enumerate(ranked_resumes, start=1):
             resume["rank"] = i
 
