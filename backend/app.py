@@ -17,10 +17,9 @@ CORS(app)
 sbert_model = SentenceTransformer("all-MiniLM-L6-v2")
 
 # Create an uploads directory if it doesn't exist
-UPLOAD_FOLDER = "uploads"
+UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), "uploads")
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
-
 
 def extract_text_from_pdf(pdf_path):
     text = ""
