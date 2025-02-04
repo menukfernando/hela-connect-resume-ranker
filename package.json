@@ -1,0 +1,10 @@
+{
+  "name": "resume-analyzer-hela-connect-demo",
+  "private": true,
+  "version": "0.0.0",
+  "workspaces": ["frontend", "backend"],
+  "scripts": {
+    "dev": "npm run dev --workspace frontend",
+    "backend": "python backend/app.py"
+  }
+}
