@@ -6,8 +6,9 @@ export interface IResults {
   name: string;
   email: string;
   similarity: number;
+  keyword_match: number;
+  final_score: number;
 }
-
 interface FormComponentProps {
   onResults: (results: IResults[]) => void;
 }
