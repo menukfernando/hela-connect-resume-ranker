@@ -5,7 +5,7 @@ import logging
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 
-import fitz  # PyMuPDF
+import fitz
 import spacy
 from sentence_transformers import SentenceTransformer, util
 import pytesseract
@@ -13,20 +13,16 @@ from pdf2image import convert_from_path
 from PIL import Image
 from functools import lru_cache
 
-# Initialize Flask App
 app = Flask(__name__)
 CORS(app)
 
-# Load Models
 sbert_model = SentenceTransformer("all-MiniLM-L6-v2")
 nlp = spacy.load("en_core_web_sm")
 
-# Create an uploads directory if it doesn't exist
 UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), "uploads")
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
-# Optimized Email Extraction
 EMAIL_REGEX = r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"
 
 def extract_text_from_pdf(pdf_path):
@@ -58,8 +54,8 @@ def extract_text_from_pdf(pdf_path):
 def extract_name_with_heuristics(text):
     """Extract a name from the first few lines of the resume."""
     lines = text.split("\n")
-    for line in lines[:5]:  # Check the first 5 lines
-        if len(line.split()) <= 3:  # Assume a valid name is 1-3 words
+    for line in lines[:5]:
+        if len(line.split()) <= 3:
             return line.strip()
     return None
 
@@ -67,9 +63,9 @@ def filter_invalid_names(names):
     """Filter out invalid names."""
     valid_names = []
     for name in names:
-        if name.isupper():  # Ignore all-uppercase words
+        if name.isupper():
             continue
-        if any(char.isdigit() for char in name):  # Ignore names with numbers
+        if any(char.isdigit() for char in name):
             continue
         valid_names.append(name)
     return valid_names
