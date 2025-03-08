@@ -135,7 +135,6 @@ def analyze_resumes():
             emails, names = extract_entities(resume_text)
             sections = extract_relevant_sections(resume_text)
 
-            # ✅ **Only use Experience & Skills for similarity calculation**
             relevant_text = sections["experience"] + " " + sections["skills"]
             if not relevant_text.strip():
                 relevant_text = resume_text  # Fallback to full resume if sections are empty
