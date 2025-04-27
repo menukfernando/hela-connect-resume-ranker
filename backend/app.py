@@ -1,17 +1,16 @@
+import logging
 import os
 import re
-import logging
-
-from flask import Flask, jsonify, request
-from flask_cors import CORS
+from functools import lru_cache
 
 import fitz
-import spacy
-from sentence_transformers import SentenceTransformer, util
 import pytesseract
+import spacy
+from flask import Flask, jsonify, request
+from flask_cors import CORS
 from pdf2image import convert_from_path
 from PIL import Image
-from functools import lru_cache
+from sentence_transformers import SentenceTransformer, util
 
 app = Flask(__name__)
 CORS(app)
@@ -24,6 +23,7 @@ if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
 EMAIL_REGEX = r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"
+
 
 def extract_text_from_pdf(pdf_path):
     """Extract text from a PDF using PyMuPDF with OCR fallback"""
@@ -51,6 +51,7 @@ def extract_text_from_pdf(pdf_path):
             text = ""
     return text
 
+
 def extract_name_with_heuristics(text):
     """Extract a name from the first few lines of the resume."""
     lines = text.split("\n")
@@ -58,6 +59,7 @@ def extract_name_with_heuristics(text):
         if len(line.split()) <= 3:
             return line.strip()
     return None
+
 
 def filter_invalid_names(names):
     """Filter out invalid names."""
@@ -70,10 +72,11 @@ def filter_invalid_names(names):
         valid_names.append(name)
     return valid_names
 
+
 def extract_entities(text):
     """Extract names and emails from the text."""
     emails = re.findall(EMAIL_REGEX, text)
-    
+
     # Use SpaCy for NER
     doc = nlp(text)
     spacy_names = [ent.text for ent in doc.ents if ent.label_ == "PERSON"]
@@ -87,30 +90,81 @@ def extract_entities(text):
 
     return list(set(emails)), list(set(names))
 
+
 def extract_relevant_sections(text):
     """Extract key sections from the resume: Education, Experience, and Skills"""
     sections = {
-        "education": re.search(r"(education|qualifications)[\s\S]+?(?=\n[A-Z]|\Z)", text, re.I),
-        "experience": re.search(r"(experience|work history|employment)[\s\S]+?(?=\n[A-Z]|\Z)", text, re.I),
-        "skills": re.search(r"(skills|technical skills)[\s\S]+?(?=\n[A-Z]|\Z)", text, re.I),
+        "education": re.search(
+            r"(education|qualifications)[\s\S]+?(?=\n[A-Z]|\Z)", text, re.I
+        ),
+        "experience": re.search(
+            r"(experience|work history|employment)[\s\S]+?(?=\n[A-Z]|\Z)", text, re.I
+        ),
+        "skills": re.search(
+            r"(skills|technical skills)[\s\S]+?(?=\n[A-Z]|\Z)", text, re.I
+        ),
     }
     return {k: v.group().strip() if v else "" for k, v in sections.items()}
+
 
 @lru_cache(maxsize=10)
 def get_job_desc_embedding(job_description):
     """Cache job description embeddings for efficiency"""
     return sbert_model.encode(job_description, convert_to_tensor=True)
 
+
 def calculate_final_score(similarity, keyword_match, experience_match):
     # Adjust weights to prioritize NLP expertise
     return (0.5 * similarity) + (0.4 * keyword_match) + (0.1 * experience_match)
 
+
 def keyword_matching(job_description, resume_text):
-    """Basic keyword matching for skills and experience"""
-    job_words = set(job_description.lower().split())
-    resume_words = set(resume_text.lower().split())
-    match_score = len(job_words & resume_words) / len(job_words) if job_words else 0
+    """Improved keyword matching based on important skills and technologies."""
+    # Define a set of important keywords (you can expand this list)
+    important_keywords = [
+        "react",
+        "node",
+        "javascript",
+        "typescript",
+        "python",
+        "django",
+        "flask",
+        "mongodb",
+        "postgresql",
+        "mysql",
+        "aws",
+        "azure",
+        "docker",
+        "kubernetes",
+        "api",
+        "restful",
+        "full stack",
+        "html",
+        "css",
+        "git",
+        "github",
+        "gitlab",
+        "express",
+        "firebase",
+    ]
+
+    # Convert both job description and resume to lowercase for case-insensitive matching
+    job_text = job_description.lower()
+    resume_text = resume_text.lower()
+
+    # Count how many important keywords appear both in job description and resume
+    matched_keywords = [
+        keyword
+        for keyword in important_keywords
+        if keyword in resume_text and keyword in job_text
+    ]
+
+    # Calculate match score
+    match_score = (
+        len(matched_keywords) / len(important_keywords) if important_keywords else 0
+    )
     return round(match_score * 100, 2)
+
 
 @app.route("/", methods=["POST"])
 def analyze_resumes():
@@ -137,7 +191,9 @@ def analyze_resumes():
 
             relevant_text = sections["experience"] + " " + sections["skills"]
             if not relevant_text.strip():
-                relevant_text = resume_text  # Fallback to full resume if sections are empty
+                relevant_text = (
+                    resume_text  # Fallback to full resume if sections are empty
+                )
 
             resume_embedding = sbert_model.encode(relevant_text, convert_to_tensor=True)
             similarity = util.cos_sim(job_desc_embedding, resume_embedding).item() * 100
@@ -155,7 +211,9 @@ def analyze_resumes():
                 }
             )
 
-        ranked_resumes = sorted(processed_resumes, key=lambda x: x["final_score"], reverse=True)
+        ranked_resumes = sorted(
+            processed_resumes, key=lambda x: x["final_score"], reverse=True
+        )
         for i, resume in enumerate(ranked_resumes, start=1):
             resume["rank"] = i
 
@@ -163,6 +221,7 @@ def analyze_resumes():
     except Exception as e:
         logging.exception("Error processing resumes")
         return jsonify({"error": str(e)}), 500
+
 
 if __name__ == "__main__":
     app.run(debug=True)
